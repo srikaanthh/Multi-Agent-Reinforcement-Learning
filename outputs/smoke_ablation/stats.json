@@ -1,0 +1,12 @@
+{
+  "heuristic_only": {
+    "n": 1,
+    "mean_final_reward_top_agent": 0.2043,
+    "std": 0.0,
+    "ci95": [
+      0.2043,
+      0.2043
+    ],
+    "mean_win_rate_top_agent": 0.3333
+  }
+}

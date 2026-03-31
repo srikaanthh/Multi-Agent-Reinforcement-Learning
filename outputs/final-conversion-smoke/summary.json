@@ -1,0 +1,109 @@
+{
+  "num_examples": 2,
+  "agent_metrics": {
+    "Qwen-Small": {
+      "mean_gt_reward": 0.0,
+      "mean_peer_score": 0.5,
+      "mean_final_reward": 0.1,
+      "gt_accuracy": 0.0,
+      "mean_revision_gain": -0.0294,
+      "mean_evaluator_alignment": null,
+      "mean_trust_weight": 0.2625,
+      "win_rate": 0.0,
+      "failure_rate": 0.0
+    },
+    "Kimi-Mini": {
+      "mean_gt_reward": 0.0,
+      "mean_peer_score": 0.5,
+      "mean_final_reward": 0.1,
+      "gt_accuracy": 0.0,
+      "mean_revision_gain": 0.0426,
+      "mean_evaluator_alignment": null,
+      "mean_trust_weight": 0.2625,
+      "win_rate": 1.0,
+      "failure_rate": 0.0
+    },
+    "Llama-Tiny": {
+      "mean_gt_reward": 0.0,
+      "mean_peer_score": 0.5,
+      "mean_final_reward": 0.1,
+      "gt_accuracy": 0.0,
+      "mean_revision_gain": -0.0294,
+      "mean_evaluator_alignment": null,
+      "mean_trust_weight": 0.2625,
+      "win_rate": 0.0,
+      "failure_rate": 0.0
+    },
+    "Mistral-FlatJudge": {
+      "mean_gt_reward": 0.0,
+      "mean_peer_score": 0.5,
+      "mean_final_reward": 0.1,
+      "gt_accuracy": 0.0,
+      "mean_revision_gain": -0.0425,
+      "mean_evaluator_alignment": null,
+      "mean_trust_weight": 0.2625,
+      "win_rate": 0.0,
+      "failure_rate": 0.0
+    }
+  },
+  "leaderboard": [
+    {
+      "agent": "Kimi-Mini",
+      "mean_final_reward": 0.1,
+      "mean_gt_reward": 0.0,
+      "gt_accuracy": 0.0,
+      "win_rate": 1.0,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.2625
+    },
+    {
+      "agent": "Llama-Tiny",
+      "mean_final_reward": 0.1,
+      "mean_gt_reward": 0.0,
+      "gt_accuracy": 0.0,
+      "win_rate": 0.0,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.2625
+    },
+    {
+      "agent": "Mistral-FlatJudge",
+      "mean_final_reward": 0.1,
+      "mean_gt_reward": 0.0,
+      "gt_accuracy": 0.0,
+      "win_rate": 0.0,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.2625
+    },
+    {
+      "agent": "Qwen-Small",
+      "mean_final_reward": 0.1,
+      "mean_gt_reward": 0.0,
+      "gt_accuracy": 0.0,
+      "win_rate": 0.0,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.2625
+    }
+  ],
+  "pairwise_win_matrix": {
+    "Qwen-Small": {
+      "Kimi-Mini": 0.0,
+      "Llama-Tiny": 0.0,
+      "Mistral-FlatJudge": 0.0
+    },
+    "Kimi-Mini": {
+      "Qwen-Small": 0.0,
+      "Llama-Tiny": 0.0,
+      "Mistral-FlatJudge": 0.0
+    },
+    "Llama-Tiny": {
+      "Qwen-Small": 0.0,
+      "Kimi-Mini": 0.0,
+      "Mistral-FlatJudge": 0.0
+    },
+    "Mistral-FlatJudge": {
+      "Qwen-Small": 0.0,
+      "Kimi-Mini": 0.0,
+      "Llama-Tiny": 0.0
+    }
+  }
+}

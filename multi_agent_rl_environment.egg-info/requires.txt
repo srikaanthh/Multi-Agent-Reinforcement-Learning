@@ -1,0 +1,11 @@
+datasets>=2.19.0
+pyyaml>=6.0
+matplotlib>=3.8.0
+pandas>=2.0.0
+numpy>=1.26.0
+
+[dev]
+pytest>=8.0
+jupyter>=1.0
+ipywidgets>=8.0
+notebook>=7.0

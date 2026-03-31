@@ -1,0 +1,145 @@
+{
+  "num_examples": 10,
+  "agent_metrics": {
+    "qwen3.5:latest": {
+      "mean_gt_reward": 0.5908,
+      "mean_peer_score": 0.6235,
+      "mean_final_reward": 0.5974,
+      "gt_accuracy": 0.4,
+      "mean_revision_gain": 0.1624,
+      "mean_evaluator_alignment": 0.5969,
+      "mean_trust_weight": 0.4585,
+      "mean_attention_entropy": 1.0977,
+      "mean_attention_bonus": 0.0,
+      "mean_estimated_advantage": 0.5974,
+      "pre_revision_accuracy": 0.3678,
+      "post_revision_accuracy": 0.5909,
+      "win_rate": 0.1,
+      "failure_rate": 0.2
+    },
+    "kimi-k2.5:cloud": {
+      "mean_gt_reward": 0.6889,
+      "mean_peer_score": 0.4407,
+      "mean_final_reward": 0.6392,
+      "gt_accuracy": 0.4,
+      "mean_revision_gain": 0.0564,
+      "mean_evaluator_alignment": 0.6904,
+      "mean_trust_weight": 0.5677,
+      "mean_attention_entropy": 1.0908,
+      "mean_attention_bonus": 0.0,
+      "mean_estimated_advantage": 0.6392,
+      "pre_revision_accuracy": 0.602,
+      "post_revision_accuracy": 0.6889,
+      "win_rate": 0.0,
+      "failure_rate": 0.1
+    },
+    "qwen2.5-coder:1.5b-base": {
+      "mean_gt_reward": 0.6438,
+      "mean_peer_score": 0.5614,
+      "mean_final_reward": 0.6273,
+      "gt_accuracy": 0.6,
+      "mean_revision_gain": 0.4284,
+      "mean_evaluator_alignment": 0.6192,
+      "mean_trust_weight": 0.2145,
+      "mean_attention_entropy": 1.0898,
+      "mean_attention_bonus": 0.0,
+      "mean_estimated_advantage": 0.6273,
+      "pre_revision_accuracy": 0.1815,
+      "post_revision_accuracy": 0.6438,
+      "win_rate": 0.6,
+      "failure_rate": 0.0
+    },
+    "qwen2.5:3b-instruct": {
+      "mean_gt_reward": 0.5559,
+      "mean_peer_score": 0.5225,
+      "mean_final_reward": 0.5492,
+      "gt_accuracy": 0.4,
+      "mean_revision_gain": 0.3572,
+      "mean_evaluator_alignment": 0.5186,
+      "mean_trust_weight": 0.5279,
+      "mean_attention_entropy": 1.0908,
+      "mean_attention_bonus": 0.0,
+      "mean_estimated_advantage": 0.5492,
+      "pre_revision_accuracy": 0.1391,
+      "post_revision_accuracy": 0.5559,
+      "win_rate": 0.3,
+      "failure_rate": 0.0
+    }
+  },
+  "leaderboard": [
+    {
+      "agent": "kimi-k2.5:cloud",
+      "mean_final_reward": 0.6392,
+      "mean_gt_reward": 0.6889,
+      "gt_accuracy": 0.4,
+      "win_rate": 0.0,
+      "failure_rate": 0.1,
+      "mean_trust_weight": 0.5677,
+      "mean_attention_entropy": 1.0908,
+      "post_revision_accuracy": 0.6889
+    },
+    {
+      "agent": "qwen2.5-coder:1.5b-base",
+      "mean_final_reward": 0.6273,
+      "mean_gt_reward": 0.6438,
+      "gt_accuracy": 0.6,
+      "win_rate": 0.6,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.2145,
+      "mean_attention_entropy": 1.0898,
+      "post_revision_accuracy": 0.6438
+    },
+    {
+      "agent": "qwen3.5:latest",
+      "mean_final_reward": 0.5974,
+      "mean_gt_reward": 0.5908,
+      "gt_accuracy": 0.4,
+      "win_rate": 0.1,
+      "failure_rate": 0.2,
+      "mean_trust_weight": 0.4585,
+      "mean_attention_entropy": 1.0977,
+      "post_revision_accuracy": 0.5909
+    },
+    {
+      "agent": "qwen2.5:3b-instruct",
+      "mean_final_reward": 0.5492,
+      "mean_gt_reward": 0.5559,
+      "gt_accuracy": 0.4,
+      "win_rate": 0.3,
+      "failure_rate": 0.0,
+      "mean_trust_weight": 0.5279,
+      "mean_attention_entropy": 1.0908,
+      "post_revision_accuracy": 0.5559
+    }
+  ],
+  "pairwise_win_matrix": {
+    "qwen3.5:latest": {
+      "kimi-k2.5:cloud": 4.0,
+      "qwen2.5-coder:1.5b-base": 4.0,
+      "qwen2.5:3b-instruct": 4.0
+    },
+    "kimi-k2.5:cloud": {
+      "qwen3.5:latest": 5.0,
+      "qwen2.5-coder:1.5b-base": 3.0,
+      "qwen2.5:3b-instruct": 5.0
+    },
+    "qwen2.5-coder:1.5b-base": {
+      "qwen3.5:latest": 6.0,
+      "kimi-k2.5:cloud": 7.0,
+      "qwen2.5:3b-instruct": 7.0
+    },
+    "qwen2.5:3b-instruct": {
+      "qwen3.5:latest": 6.0,
+      "kimi-k2.5:cloud": 5.0,
+      "qwen2.5-coder:1.5b-base": 3.0
+    }
+  },
+  "verification_metrics": {
+    "stage_order_matches_expected": 1.0,
+    "self_evaluation_blocked": 1.0,
+    "normalization_preserves_ranking": 1.0,
+    "attention_probabilities_valid": 0.7,
+    "peer_scores_bounded": 1.0,
+    "final_rewards_bounded": 1.0
+  }
+}

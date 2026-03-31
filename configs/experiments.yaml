@@ -1,0 +1,114 @@
+# Paper-style ablation grid (small proof-of-concept defaults).
+# Adjust models to match your local `ollama list`; use heuristic backend for CI/smoke tests.
+
+dataset: gsm8k
+split: train
+limit: 15
+start_index: 0
+batch_size: 5
+seeds: [7, 13]
+track_learning_curve: true
+apply_updates: true
+resume: false
+streaming: true
+continue_on_agent_error: true
+alpha: 0.8
+revision_rounds: 0
+max_concurrency: 4
+use_trust_weighting: true
+historical_trust_blend: 0.5
+trust_floor: 0.1
+use_rl: true
+use_attention: true
+attention_top_k: 2
+attention_temperature: 1.0
+attention_entropy_coef: 0.05
+ollama_host: null
+models:
+  - qwen2.5:3b-instruct
+  - llama3.2:3b
+output_root: outputs/ablations
+
+runs:
+  - name: ollama_baseline
+    backend: ollama
+    task_type: flexible
+    use_trust_weighting: false
+    use_rl: false
+    use_attention: false
+
+  - name: attention_only
+    backend: ollama
+    task_type: flexible
+    use_rl: false
+    use_attention: true
+
+  - name: rl_only
+    backend: ollama
+    task_type: flexible
+    use_rl: true
+    use_attention: false
+
+  - name: rl_attention_full
+    backend: ollama
+    task_type: flexible
+    use_rl: true
+    use_attention: true
+
+  - name: self_refine_baseline
+    backend: self_refine
+    task_type: flexible
+    revision_rounds: 1
+    use_trust_weighting: false
+    use_rl: false
+    use_attention: false
+
+  - name: ollama_revision
+    backend: ollama
+    task_type: flexible
+    revision_rounds: 1
+
+  - name: icl_no_memory
+    backend: icl
+    memory_strategy: none
+    prompt_memory_size: 0
+    task_type: flexible
+
+  - name: icl_reward_weighted
+    backend: icl
+    memory_strategy: reward_weighted
+    prompt_memory_size: 5
+    task_type: flexible
+
+  - name: icl_reward_weighted_no_trust
+    backend: icl
+    memory_strategy: reward_weighted
+    prompt_memory_size: 5
+    task_type: flexible
+    use_trust_weighting: false
+
+  - name: icl_reward_weighted_revision
+    backend: icl
+    memory_strategy: reward_weighted
+    prompt_memory_size: 5
+    task_type: flexible
+    revision_rounds: 1
+
+  - name: icl_random
+    backend: icl
+    memory_strategy: random
+    prompt_memory_size: 5
+    task_type: flexible
+
+  - name: icl_oracle
+    backend: icl
+    memory_strategy: oracle
+    prompt_memory_size: 5
+    oracle_gt_threshold: 0.99
+    task_type: flexible
+
+  - name: heuristic_smoke
+    backend: heuristic
+    task_type: flexible
+    use_rl: true
+    use_attention: true

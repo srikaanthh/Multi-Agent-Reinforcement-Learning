@@ -1,0 +1,21 @@
+# Fast local smoke test (no Ollama). Verifies ablation runner + learning curves.
+
+dataset: gsm8k
+split: train
+limit: 3
+start_index: 0
+batch_size: 2
+seeds: [7]
+track_learning_curve: true
+apply_updates: true
+resume: false
+alpha: 0.8
+models:
+  - dummy-a
+  - dummy-b
+output_root: outputs/smoke_ablation
+
+runs:
+  - name: heuristic_only
+    backend: heuristic
+    task_type: flexible

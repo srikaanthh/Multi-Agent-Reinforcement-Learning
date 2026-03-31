@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-agent-rl-environment"
+version = "0.1.0"
+description = "Modular multi-agent reinforcement learning environment for LLM evaluation and self-improvement."
+requires-python = ">=3.10"
+dependencies = [
+    "datasets>=2.19.0",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8.0",
+    "pandas>=2.0.0",
+    "numpy>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "jupyter>=1.0",
+    "ipywidgets>=8.0",
+    "notebook>=7.0",
+]
+
+[tool.setuptools]
+packages = ["agents", "analysis", "data", "environment", "experiment", "utils"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
