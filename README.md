@@ -6,17 +6,13 @@ This repository implements a multi-agent evaluation and improvement loop for LLM
 
 The environment verifies rewards in strict order:
 
-`ground_truth_reward -> raw_peer_scores -> score_normalization -> trust_weighting -> attention_weighting -> combined_peer_reward -> final_reward -> sanity_checks`
+`ground_truth_reward -> raw_peer_salvageability_scores -> score_normalization -> trust_weighting -> attention_weighting -> combined_peer_recoverability -> recoverability_components -> final_recoverability_reward -> sanity_checks`
 
-The final reward is:
+The final scalar reward is **recoverability-aware**:
 
-`R_j = alpha * R_gt_j + (1 - alpha) * R_peer_j`
+`R = alpha*R_final + beta*sum(delta_u) + gamma*mean(b_t) - delta*mean(f_t) + eta*peer_salv + zeta*branch_bonus`
 
-with
-
-`R_peer_j = sum_i(a_ij * t_i * s_ij) / sum_i(a_ij * t_i)`
-
-This keeps ground truth dominant while still letting trusted, relevant peers influence the final score.
+where `delta_u` is the change in heuristic recoverability per reasoning step, `b_t` is a belief / branch-preservation score, `f_t` matches stored failure motifs, and `peer_salv` is the attention–trust weighted aggregate of peer **salvageability** scores (not a simple blend of GT and peer accuracy).
 
 ## Repository Layout
 
@@ -113,12 +109,13 @@ Useful fields include:
 
 - `stage_order`
 - `ground_truth_reward`
-- `raw_peer_scores`
+- `raw_peer_salvageability_scores`
 - `score_normalization`
 - `trust_weighting`
 - `attention_weighting`
-- `combined_peer_reward`
-- `final_reward`
+- `combined_peer_recoverability`
+- `recoverability_components`
+- `final_recoverability_reward`
 - `sanity_checks`
 
 ## Current Improvement Areas

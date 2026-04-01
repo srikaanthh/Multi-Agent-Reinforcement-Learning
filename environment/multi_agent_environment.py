@@ -10,6 +10,14 @@ import numpy as np
 
 from agents import Agent
 from utils import AttentionModule, EpisodeLogger, compute_ground_truth_reward, normalize_scores, safe_mean
+from utils.recoverability_rewards import (
+    FailureMotifMemory,
+    RecoverabilityReward,
+    RewardBreakdown,
+    clamp01,
+    extract_failure_motif_snippet,
+    extract_reasoning_steps,
+)
 
 T = TypeVar("T")
 
@@ -35,7 +43,7 @@ class MultiAgentEnvironment:
     def __init__(
         self,
         agents: Sequence[Agent],
-        alpha: float = 0.8,
+        alpha: float = 0.6,
         task_type: str = "exact",
         seed: Optional[int] = None,
         logger: Optional[EpisodeLogger] = None,
@@ -53,11 +61,17 @@ class MultiAgentEnvironment:
         attention_top_k: int = 2,
         attention_temperature: float = 1.0,
         attention_entropy_coef: float = 0.05,
+        recoverability_beta: float = 0.25,
+        recoverability_gamma: float = 0.10,
+        recoverability_delta: float = 0.05,
+        recoverability_eta: float = 0.10,
+        recoverability_zeta: float = 0.05,
+        failure_motif_max: int = 128,
     ) -> None:
         if not agents:
             raise ValueError("At least one agent is required.")
-        if not 0.7 <= alpha <= 0.9:
-            raise ValueError("alpha must be within [0.7, 0.9].")
+        if not 0.0 <= alpha <= 1.0:
+            raise ValueError("alpha (recoverability final-correctness weight) must be within [0.0, 1.0].")
 
         self.agents = list(agents)
         self.alpha = alpha
@@ -80,6 +94,20 @@ class MultiAgentEnvironment:
         self.attention_entropy_coef = max(0.0, float(attention_entropy_coef))
         self.attention_module = AttentionModule(temperature=attention_temperature)
         self.history: List[Dict[str, object]] = []
+        self.failure_motif_memory = FailureMotifMemory(max_motifs=failure_motif_max)
+        self.recoverability_beta = recoverability_beta
+        self.recoverability_gamma = recoverability_gamma
+        self.recoverability_delta = recoverability_delta
+        self.recoverability_eta = recoverability_eta
+        self.recoverability_zeta = recoverability_zeta
+        self.recoverability_reward = RecoverabilityReward(
+            alpha=alpha,
+            beta=recoverability_beta,
+            gamma=recoverability_gamma,
+            delta=recoverability_delta,
+            eta=recoverability_eta,
+            zeta=recoverability_zeta,
+        )
 
     def step(
         self,
@@ -221,11 +249,12 @@ class MultiAgentEnvironment:
                 "alpha": self.alpha,
                 "gt_has_variance": gt_has_variance,
                 "aggregation_method": (
-                    "strict_order_ground_truth_to_peer_to_trust_to_attention_to_final_reward"
+                    "strict_order_ground_truth_to_peer_salvageability_to_trust_to_attention_to_recoverability_reward"
                 ),
                 "reward_formula": (
-                    "R_j = alpha * R_gt_j + (1 - alpha) * R_peer_j, "
-                    "with R_peer_j = sum_i(a_ij * t_i * s_ij) / sum_i(a_ij * t_i)"
+                    "R = alpha*R_final + beta*sum(delta_u) + gamma*mean(b_t) - delta*mean(f_t) "
+                    "+ eta*peer_salvageability + zeta*branch_bonus; peer_salvageability = "
+                    "sum_i(a_ij*t_i*s_ij)/sum_i(a_ij*t_i) with s_ij = salvageability scores"
                 ),
                 "use_rl": self.use_rl,
                 "use_attention": self.use_attention,
@@ -237,6 +266,11 @@ class MultiAgentEnvironment:
                         "gt_reward": reward["gt_reward"],
                         "peer_score": reward["peer_score"],
                         "attention_entropy_bonus": reward.get("attention_entropy_bonus", 0.0),
+                        "step_progress_reward": reward.get("step_progress_reward", 0.0),
+                        "belief_reward": reward.get("belief_reward", 0.0),
+                        "failure_penalty": reward.get("failure_penalty", 0.0),
+                        "peer_recoverability_reward": reward.get("peer_recoverability_reward", 0.0),
+                        "branch_bonus": reward.get("branch_bonus", 0.0),
                         "estimated_advantage": round(
                             float(reward["final_reward"]) - float(getattr(agent, "running_mean_reward", 0.0)),
                             4,
@@ -314,6 +348,12 @@ class MultiAgentEnvironment:
             diag = diagnostics[agent_index]
             evaluator_alignment = final_round["evaluator_alignment"][agent.name]
             estimated_advantage = float(reward_dict["final_reward"]) - float(getattr(agent, "running_mean_reward", 0.0))
+            new_failure_motifs: List[str] = []
+            if float(reward_dict["gt_reward"]) < 1.0:
+                snippet = extract_failure_motif_snippet(str(serialized_final[agent_index].get("reasoning", "")))
+                if snippet:
+                    self.failure_motif_memory.add_motif(snippet)
+                    new_failure_motifs.append(snippet)
             feedback = {
                 "task_id": task_id,
                 "question": question,
@@ -326,6 +366,14 @@ class MultiAgentEnvironment:
                 "gt_reward": float(reward_dict["gt_reward"]),
                 "peer_score": float(reward_dict["peer_score"]),
                 "final_reward": float(reward_dict["final_reward"]),
+                "step_progress_reward": float(reward_dict.get("step_progress_reward", 0.0)),
+                "belief_reward": float(reward_dict.get("belief_reward", 0.0)),
+                "failure_penalty": float(reward_dict.get("failure_penalty", 0.0)),
+                "peer_recoverability_reward": float(reward_dict.get("peer_recoverability_reward", 0.0)),
+                "branch_bonus": float(reward_dict.get("branch_bonus", 0.0)),
+                "recoverability_breakdown": reward_dict.get("recoverability_breakdown"),
+                "new_failure_motifs": new_failure_motifs,
+                "environment_failure_motif_count": len(self.failure_motif_memory.motifs),
                 "peer_evaluations": peer_eval_meta,
                 "evaluator_disagreement": diag.disagreement_penalty,
                 "evaluator_flat_penalty": diag.flat_penalty_applied,
@@ -414,7 +462,13 @@ class MultiAgentEnvironment:
         diagnostics = self._normalize_peer_scores(raw_peer_matrix)
         evaluator_alignment = self._apply_trust_weighting(diagnostics, gt_rewards)
         peer_scores, attention_metadata, attention_payloads = self._aggregate_peer_scores(diagnostics, responses)
-        rewards = self._compute_final_rewards(gt_rewards, peer_scores, attention_metadata)
+        rewards, recoverability_details = self._compute_recoverability_final_rewards(
+            responses=responses,
+            ground_truth=ground_truth,
+            gt_rewards=gt_rewards,
+            peer_scores=peer_scores,
+            attention_metadata=attention_metadata,
+        )
         ranking = self._rank_agents(rewards)
         gt_has_variance = not math.isclose(max(gt_rewards), min(gt_rewards))
         verification = self._build_verification_report(
@@ -427,6 +481,7 @@ class MultiAgentEnvironment:
             rewards=rewards,
             ranking=ranking,
             gt_has_variance=gt_has_variance,
+            recoverability_details=recoverability_details,
         )
         return {
             "gt_rewards": gt_rewards,
@@ -625,25 +680,86 @@ class MultiAgentEnvironment:
 
         return peer_scores, attention_metadata, attention_payloads
 
-    def _compute_final_rewards(
+    @staticmethod
+    def _serialize_recoverability_breakdown(bd: RewardBreakdown) -> Dict[str, Any]:
+        return {
+            "final_correctness": round(bd.final_correctness, 4),
+            "step_progress_reward": round(bd.step_progress_reward, 4),
+            "belief_reward": round(bd.belief_reward, 4),
+            "failure_penalty": round(bd.failure_penalty, 4),
+            "peer_recoverability_reward": round(bd.peer_recoverability_reward, 4),
+            "branch_bonus": round(bd.branch_bonus, 4),
+            "total_reward": round(bd.total_reward, 4),
+            "step_states": [
+                {
+                    "step_index": s.step_index,
+                    "recoverability": round(s.recoverability, 4),
+                    "delta_recoverability": round(s.delta_recoverability, 4),
+                    "belief_score": round(s.belief_score, 4),
+                    "failure_flag": round(s.failure_flag, 4),
+                }
+                for s in bd.step_states
+            ],
+        }
+
+    def _compute_recoverability_final_rewards(
         self,
+        *,
+        responses: List[Dict[str, Any]],
+        ground_truth: str,
         gt_rewards: List[float],
         peer_scores: List[float],
         attention_metadata: List[Dict[str, Any]],
-    ) -> List[Dict[str, float | str]]:
-        rewards = []
-        for agent, gt_reward, peer_score, attn in zip(self.agents, gt_rewards, peer_scores, attention_metadata):
-            final_reward = (self.alpha * gt_reward) + ((1.0 - self.alpha) * peer_score)
+    ) -> tuple[List[Dict[str, float | str]], List[Dict[str, Any]]]:
+        rewards: List[Dict[str, float | str]] = []
+        recoverability_details: List[Dict[str, Any]] = []
+
+        for agent, response, _gt_reward, peer_score, attn in zip(
+            self.agents, responses, gt_rewards, peer_scores, attention_metadata
+        ):
+            reasoning = str(response.get("reasoning", ""))
+            steps = extract_reasoning_steps(reasoning)
+            if not steps:
+                ans = str(response.get("answer", "")).strip()
+                steps = [ans[:400] if ans else " "]
+
+            bd = self.recoverability_reward.compute_reward(
+                final_answer=str(response.get("answer", "")),
+                steps=steps,
+                ground_truth=ground_truth,
+                task_type=self.task_type,
+                failure_memory=self.failure_motif_memory,
+                aggregated_peer_recoverability=float(peer_score),
+            )
+            entropy_bonus = float(attn.get("entropy_bonus", 0.0))
+            final_reward = float(bd.total_reward)
+            if self.attention_entropy_coef > 0.0 and entropy_bonus:
+                final_reward = clamp01(final_reward + self.attention_entropy_coef * entropy_bonus)
+
+            detail = self._serialize_recoverability_breakdown(bd)
+            detail["agent"] = agent.name
+            recoverability_details.append(detail)
+
             rewards.append(
                 {
                     "agent": agent.name,
-                    "gt_reward": round(gt_reward, 4),
-                    "peer_score": round(peer_score, 4),
-                    "attention_entropy_bonus": round(float(attn.get("entropy_bonus", 0.0)), 4),
+                    "gt_reward": round(float(_gt_reward), 4),
+                    "peer_score": round(float(peer_score), 4),
+                    "attention_entropy_bonus": round(entropy_bonus, 4),
+                    "step_progress_reward": round(bd.step_progress_reward, 4),
+                    "belief_reward": round(bd.belief_reward, 4),
+                    "failure_penalty": round(bd.failure_penalty, 4),
+                    "peer_recoverability_reward": round(bd.peer_recoverability_reward, 4),
+                    "branch_bonus": round(bd.branch_bonus, 4),
                     "final_reward": round(final_reward, 4),
+                    "recoverability_breakdown": {
+                        "final_correctness": round(bd.final_correctness, 4),
+                        "total_reward": round(bd.total_reward, 4),
+                    },
                 }
             )
-        return rewards
+
+        return rewards, recoverability_details
 
     def _rank_agents(self, rewards: List[Dict[str, float | str]]) -> List[str]:
         sorted_rewards = sorted(
@@ -669,6 +785,7 @@ class MultiAgentEnvironment:
         rewards: List[Dict[str, float | str]],
         ranking: List[str],
         gt_has_variance: bool,
+        recoverability_details: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         sanity_checks = self._run_sanity_checks(
             diagnostics=diagnostics,
@@ -679,12 +796,13 @@ class MultiAgentEnvironment:
         return {
             "stage_order": [
                 "ground_truth_reward",
-                "raw_peer_scores",
+                "raw_peer_salvageability_scores",
                 "score_normalization",
                 "trust_weighting",
                 "attention_weighting",
-                "combined_peer_reward",
-                "final_reward",
+                "combined_peer_recoverability",
+                "recoverability_components",
+                "final_recoverability_reward",
                 "sanity_checks",
             ],
             "ground_truth_reward": [
@@ -696,7 +814,7 @@ class MultiAgentEnvironment:
                 }
                 for response, gt_reward in zip(self._serialize_responses(responses), gt_rewards)
             ],
-            "raw_peer_scores": [
+            "raw_peer_salvageability_scores": [
                 {
                     "evaluator": agent.name,
                     "scores": row,
@@ -728,14 +846,15 @@ class MultiAgentEnvironment:
                 ],
             },
             "attention_weighting": attention_metadata,
-            "combined_peer_reward": [
+            "combined_peer_recoverability": [
                 {
                     "agent": agent.name,
-                    "peer_reward": round(float(score), 4),
+                    "peer_recoverability": round(float(score), 4),
                 }
                 for agent, score in zip(self.agents, peer_scores)
             ],
-            "final_reward": rewards,
+            "recoverability_components": recoverability_details,
+            "final_recoverability_reward": rewards,
             "final_ranking": ranking,
             "sanity_checks": sanity_checks,
         }

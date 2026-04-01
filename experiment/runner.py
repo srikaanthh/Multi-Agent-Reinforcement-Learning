@@ -11,12 +11,13 @@ from environment import MultiAgentEnvironment
 
 EXPECTED_VERIFICATION_STAGE_ORDER = [
     "ground_truth_reward",
-    "raw_peer_scores",
+    "raw_peer_salvageability_scores",
     "score_normalization",
     "trust_weighting",
     "attention_weighting",
-    "combined_peer_reward",
-    "final_reward",
+    "combined_peer_recoverability",
+    "recoverability_components",
+    "final_recoverability_reward",
     "sanity_checks",
 ]
 
@@ -71,6 +72,11 @@ def compute_summary_metrics(records: Sequence[Dict[str, object]]) -> Dict[str, o
             "advantage_count": 0.0,
             "pre_revision_accuracy": 0.0,
             "post_revision_accuracy": 0.0,
+            "mean_step_progress_reward": 0.0,
+            "mean_belief_reward": 0.0,
+            "mean_failure_penalty": 0.0,
+            "mean_branch_bonus": 0.0,
+            "mean_peer_recoverability_reward": 0.0,
         }
         for agent in agent_names
     }
@@ -132,6 +138,18 @@ def compute_summary_metrics(records: Sequence[Dict[str, object]]) -> Dict[str, o
             agent_metrics[agent]["mean_gt_reward"] += float(reward["gt_reward"])
             agent_metrics[agent]["mean_peer_score"] += float(reward["peer_score"])
             agent_metrics[agent]["mean_final_reward"] += float(reward["final_reward"])
+            if "step_progress_reward" in reward:
+                agent_metrics[agent]["mean_step_progress_reward"] += float(reward["step_progress_reward"])
+            if "belief_reward" in reward:
+                agent_metrics[agent]["mean_belief_reward"] += float(reward["belief_reward"])
+            if "failure_penalty" in reward:
+                agent_metrics[agent]["mean_failure_penalty"] += float(reward["failure_penalty"])
+            if "branch_bonus" in reward:
+                agent_metrics[agent]["mean_branch_bonus"] += float(reward["branch_bonus"])
+            if "peer_recoverability_reward" in reward:
+                agent_metrics[agent]["mean_peer_recoverability_reward"] += float(
+                    reward["peer_recoverability_reward"]
+                )
             agent_metrics[agent]["gt_accuracy"] += 1.0 if math.isclose(float(reward["gt_reward"]), 1.0) else 0.0
             agent_metrics[agent]["pre_revision_accuracy"] += float(pre_revision.get(agent, 0.0))
             agent_metrics[agent]["post_revision_accuracy"] += float(post_revision.get(agent, 0.0))
@@ -201,6 +219,13 @@ def compute_summary_metrics(records: Sequence[Dict[str, object]]) -> Dict[str, o
         metrics["mean_estimated_advantage"] = round(
             metrics["mean_estimated_advantage"] / metrics["advantage_count"], 4
         ) if metrics["advantage_count"] > 0 else None
+        metrics["mean_step_progress_reward"] = round(metrics["mean_step_progress_reward"] / total_examples, 4)
+        metrics["mean_belief_reward"] = round(metrics["mean_belief_reward"] / total_examples, 4)
+        metrics["mean_failure_penalty"] = round(metrics["mean_failure_penalty"] / total_examples, 4)
+        metrics["mean_branch_bonus"] = round(metrics["mean_branch_bonus"] / total_examples, 4)
+        metrics["mean_peer_recoverability_reward"] = round(
+            metrics["mean_peer_recoverability_reward"] / total_examples, 4
+        )
         del metrics["wins"]
         del metrics["failure_count"]
         del metrics["alignment_count"]
@@ -218,6 +243,11 @@ def compute_summary_metrics(records: Sequence[Dict[str, object]]) -> Dict[str, o
                 "mean_trust_weight": metrics["mean_trust_weight"],
                 "mean_attention_entropy": metrics["mean_attention_entropy"],
                 "post_revision_accuracy": metrics["post_revision_accuracy"],
+                "mean_step_progress_reward": metrics["mean_step_progress_reward"],
+                "mean_belief_reward": metrics["mean_belief_reward"],
+                "mean_failure_penalty": metrics["mean_failure_penalty"],
+                "mean_branch_bonus": metrics["mean_branch_bonus"],
+                "mean_peer_recoverability_reward": metrics["mean_peer_recoverability_reward"],
             }
         )
 
@@ -433,6 +463,11 @@ class ExperimentRunner:
                 "attention_top_k": self.env.attention_top_k,
                 "attention_temperature": self.env.attention_module.temperature,
                 "attention_entropy_coef": self.env.attention_entropy_coef,
+                "recoverability_beta": self.env.recoverability_beta,
+                "recoverability_gamma": self.env.recoverability_gamma,
+                "recoverability_delta": self.env.recoverability_delta,
+                "recoverability_eta": self.env.recoverability_eta,
+                "recoverability_zeta": self.env.recoverability_zeta,
             },
             "agents": [
                 {

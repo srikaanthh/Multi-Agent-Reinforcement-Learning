@@ -213,11 +213,13 @@ class OllamaAgent(Agent):
         rendered_responses = "\n\n".join(lines)
         exact_schema = json.dumps({"scores": [0.0 for _ in responses]})
         return (
-            "You are scoring peer answers in a multi-agent evaluation environment.\n"
+            "You are evaluating peer reasoning traces in a multi-agent environment.\n"
             f"Your evaluator name: {self.name}\n"
             f"Question: {question}\n\n"
-            "Score each response on correctness, reasoning quality, and clarity.\n"
-            "Use scores in [0, 1]. Higher is better.\n"
+            "For each response, output a salvageability score in [0, 1]: how likely it is that\n"
+            "competent reasoning could still correct the trace to reach the right answer.\n"
+            "Reward structured work that preserves a path to the truth; penalize confident wrong commitments.\n"
+            "This is NOT the same as final correctness alone.\n"
             "Do not self-promote: if a response is from your own agent, assign 0.\n\n"
             f"Responses:\n{rendered_responses}\n\n"
             "Return only valid JSON with this exact schema:\n"

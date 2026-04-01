@@ -2,7 +2,7 @@
 
 The reward pipeline is logged in strict order for every episode:
 
-`ground_truth_reward -> raw_peer_scores -> score_normalization -> trust_weighting -> attention_weighting -> combined_peer_reward -> final_reward -> sanity_checks`
+`ground_truth_reward -> raw_peer_salvageability_scores -> score_normalization -> trust_weighting -> attention_weighting -> combined_peer_recoverability -> recoverability_components -> final_recoverability_reward -> sanity_checks`
 
 ## Smoke test (no GPU / no Ollama)
 

@@ -66,6 +66,7 @@ class HeuristicMathAgent(Agent):
         return self._build_response_payload(answer, reasoning, policy_trace=policy_trace)
 
     def evaluate(self, question: str, responses: List[Dict[str, str]]) -> List[float]:
+        """Return salvageability scores: how recoverable each peer trace is toward a correct solution."""
         inferred_value, _ = solve_math_question(question)
         inferred_answer = format_number(inferred_value) if inferred_value is not None else None
         scores: List[float] = []
@@ -75,24 +76,34 @@ class HeuristicMathAgent(Agent):
                 scores.append(0.0)
                 continue
 
+            reasoning = str(response.get("reasoning", "") or "")
             response_numeric = extract_numeric_token(response["answer"])
-            correctness = 0.0
-            if inferred_answer is not None and response_numeric is not None:
-                correctness = 1.0 if response_numeric == inferred_answer else 0.1
-            elif response_numeric is not None:
-                correctness = 0.35
 
-            clarity = 1.0 if len(response["answer"].split()) <= 5 else 0.75
-            reasoning_quality = 1.0 if response["reasoning"] else 0.4
+            if self.judge_style == "flat":
+                scores.append(0.55)
+                continue
+
+            salvageability = 0.35
+            if inferred_answer is not None and response_numeric is not None:
+                if response_numeric == inferred_answer:
+                    salvageability = 0.82 + (0.18 if len(reasoning) > 12 else 0.0)
+                else:
+                    has_structure = any(op in reasoning for op in ["+", "-", "*", "/", "="]) or len(
+                        reasoning.split()
+                    ) > 8
+                    salvageability = 0.52 if has_structure else 0.22
+            elif response_numeric is not None:
+                salvageability = 0.48
+
+            clarity = 1.0 if len(str(response["answer"]).split()) <= 5 else 0.75
+            reasoning_signal = 1.0 if reasoning else 0.35
 
             if self.judge_style == "strict":
-                score = 0.75 * correctness + 0.15 * reasoning_quality + 0.10 * clarity
+                score = 0.70 * salvageability + 0.18 * reasoning_signal + 0.12 * clarity
             elif self.judge_style == "clarity":
-                score = 0.55 * correctness + 0.25 * clarity + 0.20 * reasoning_quality
+                score = 0.55 * salvageability + 0.30 * clarity + 0.15 * reasoning_signal
             elif self.judge_style == "semantic":
-                score = 0.65 * correctness + 0.10 * clarity + 0.25 * reasoning_quality
-            elif self.judge_style == "flat":
-                score = 0.8
+                score = 0.62 * salvageability + 0.12 * clarity + 0.26 * reasoning_signal
             else:
                 raise ValueError(f"Unsupported judge_style: {self.judge_style}")
 

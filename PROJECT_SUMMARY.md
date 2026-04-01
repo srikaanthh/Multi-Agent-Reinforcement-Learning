@@ -14,20 +14,15 @@ The core idea is:
 6. A peer reward is computed from normalized scores, trust, and attention.
 7. The final reward mixes objective ground truth with the peer reward.
 
-The final reward used in the environment is:
+The final scalar reward is **recoverability-aware** (not a simple `alpha * GT + (1-alpha) * peer` blend):
 
-`R_j = alpha * R_gt_j + (1 - alpha) * R_peer_j`
+`R_j = alpha * R_final + beta * sum_t(delta_u) + gamma * mean_t(b_t) - delta * mean_t(f_t) + eta * R_peer_salv_j + zeta * branch_bonus`
 
-with
+where `R_final` is ground-truth correctness (exact or flexible), `delta_u` is the per-step change in heuristic recoverability, peers output **salvageability** scores `s_ij`, and
 
-`R_peer_j = sum_i(a_ij * t_i * s_ij) / sum_i(a_ij * t_i)`
+`R_peer_salv_j = sum_i(a_ij * t_i * s_ij) / sum_i(a_ij * t_i)`
 
-where:
-
-- `R_gt_j` is the ground-truth reward for agent `j`
-- `s_ij` is evaluator `i`'s normalized score for agent `j`
-- `t_i` is evaluator `i`'s trust weight
-- `a_ij` is the attention weight for evaluator `i` when scoring response `j`
+with the same attention `a_ij` and trust `t_i` as before.
 
 ## Main Components
 

@@ -18,12 +18,13 @@ from utils import embed_text, extract_json_value
 
 EXPECTED_STAGE_ORDER = [
     "ground_truth_reward",
-    "raw_peer_scores",
+    "raw_peer_salvageability_scores",
     "score_normalization",
     "trust_weighting",
     "attention_weighting",
-    "combined_peer_reward",
-    "final_reward",
+    "combined_peer_recoverability",
+    "recoverability_components",
+    "final_recoverability_reward",
     "sanity_checks",
 ]
 
@@ -156,19 +157,7 @@ class MultiAgentEnvironmentTests(unittest.TestCase):
         result = env.step(question="What is 2 + 2?", ground_truth="4", apply_updates=False)
         verification = result["metadata"]["reward_verification"]
 
-        self.assertEqual(
-            verification["stage_order"],
-            [
-                "ground_truth_reward",
-                "raw_peer_scores",
-                "score_normalization",
-                "trust_weighting",
-                "attention_weighting",
-                "combined_peer_reward",
-                "final_reward",
-                "sanity_checks",
-            ],
-        )
+        self.assertEqual(verification["stage_order"], EXPECTED_STAGE_ORDER)
         gt_map = {
             item["agent"]: item["reward"]
             for item in verification["ground_truth_reward"]
@@ -460,8 +449,9 @@ class MultiAgentEnvironmentTests(unittest.TestCase):
         self.assertAlmostEqual(rewards["a"]["peer_score"], 1.0, places=4)
         self.assertAlmostEqual(rewards["b"]["peer_score"], 0.0, places=4)
         self.assertAlmostEqual(rewards["c"]["peer_score"], 0.5, places=4)
-        self.assertAlmostEqual(rewards["a"]["final_reward"], 1.0, places=4)
-        self.assertAlmostEqual(rewards["b"]["final_reward"], 0.0, places=4)
+        # Recoverability reward: alpha*R_final + gamma*belief + eta*peer_salvageability (+ ...)
+        self.assertAlmostEqual(rewards["a"]["final_reward"], 0.95, places=4)
+        self.assertAlmostEqual(rewards["b"]["final_reward"], 0.05, places=4)
         self.assertAlmostEqual(rewards["c"]["final_reward"], 0.1, places=4)
 
     def test_sanity_checks_reduce_uniform_case_to_simple_average(self) -> None:

@@ -34,6 +34,7 @@ class Agent(ABC):
         self.generation_memory: List[Dict[str, Any]] = []
         self.eval_memory: List[Dict[str, Any]] = []
         self.evaluator_alignment_history: List[float] = []
+        self.failure_motifs: List[str] = []
 
         self.use_rl = use_rl
         self.reward_clip = max(0.0, float(reward_clip))
@@ -97,6 +98,13 @@ class Agent(ABC):
             align = feedback.get("evaluator_alignment")
             if isinstance(align, (int, float)):
                 self.evaluator_alignment_history.append(float(align))
+            motifs = feedback.get("new_failure_motifs")
+            if isinstance(motifs, list):
+                for m in motifs:
+                    if isinstance(m, str) and m and m not in self.failure_motifs:
+                        self.failure_motifs.append(m)
+                        if len(self.failure_motifs) > 64:
+                            self.failure_motifs = self.failure_motifs[-64:]
 
         if not self.use_rl:
             return
