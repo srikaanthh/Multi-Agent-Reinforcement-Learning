@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_at_utc": "2026-04-02T21:13:45.924056+00:00",
+  "created_at_utc": "2026-04-02T19:47:41.738508+00:00",
   "environment": {
     "alpha": 0.8,
     "task_type": "flexible",
@@ -31,9 +31,9 @@
       "model": "qwen3.5:latest"
     },
     {
-      "name": "deepseek-r1:7b",
+      "name": "kimi-k2.5:cloud",
       "class": "ICLOllamaAgent",
-      "model": "deepseek-r1:7b"
+      "model": "kimi-k2.5:cloud"
     },
     {
       "name": "qwen2.5-coder:1.5b-base",
@@ -48,22 +48,22 @@
   ],
   "run": {
     "dataset": "gsm8k",
-    "split": "train",
+    "split": "test",
     "backend": "icl",
     "models": [
       "qwen3.5:latest",
-      "deepseek-r1:7b",
+      "kimi-k2.5:cloud",
       "qwen2.5-coder:1.5b-base",
       "qwen2.5:3b-instruct"
     ],
     "ollama_host": "http://127.0.0.1:11434",
     "seed": 7,
-    "limit": 50,
+    "limit": 25,
     "start_index": 0,
     "batch_size": 5,
     "alpha": 0.8,
     "task_type": "flexible",
-    "apply_updates": true,
+    "apply_updates": false,
     "resume": true,
     "track_learning_curve": true,
     "streaming": true,
@@ -80,6 +80,6 @@
     "icl_strategy": "reward_weighted",
     "prompt_memory_size": 5,
     "memory_buffer_size": 128,
-    "output_dir": "outputs/notebook-train"
+    "output_dir": "outputs/notebook-test"
   }
 }
